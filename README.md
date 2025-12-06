@@ -25,9 +25,48 @@
 <p>This diagram shows how the pieces connect.</p>
 <h3>📌 System Architecture Diagram</h3>
 
-<p align="center">
-  <img src="assets/architecture.png" alt="System Architecture Diagram" width="100%">
-</p>
+```mermaid
+flowchart LR
+
+  %% CLUSTERS
+  subgraph CitizenApp ["Citizen Web App - User Panel"]
+      U["User Browser"]
+  end
+
+  subgraph Firebase ["Firebase Services"]
+      FA["Auth"]
+      FD["Firestore and Storage"]
+  end
+
+  subgraph NodeAPI ["Node Express API - User Backend"]
+      E["Express API 5000"]
+      M["MongoDB Database"]
+  end
+
+  subgraph FlaskAI ["Flask AI Detection Service"]
+      F["Predict Image API 5001"]
+  end
+
+  subgraph AdminApp ["Admin Dashboard Panel"]
+      A["Admin Browser"]
+  end
+
+  %% CONNECTIONS
+  U -->|Login and Signup| FA
+  U -->|Submit Report with Image| E
+
+  E -->|Store and Query Data| M
+  E -->|Send Image to AI| F
+  F -->|AI Response| E
+
+  FA -->|Authentication State| U
+  U -->|Retrieve Dashboard Data| FD
+
+  A -->|Login Request| E
+  A -->|Fetch Reports and Stats| E
+  E -->|Return Aggregated Data| A
+```
+
 
 <hr>
 <h2 id="prerequisites">Prerequisites</h2>
@@ -350,3 +389,118 @@ curl -X POST "http://localhost:5000/api/login" \
 ---
 
 Matches usage in `admin-panel/src/pages/Login.js`, where token and user fields are expected.
+
+## 🧠 AI Model Overview – Road Damage Detection Engine
+
+This project integrates a lightweight YOLO-based deep learning model trained for 
+**pothole and road anomaly detection**.  
+It powers the backend image analysis pipeline and supports real-time detection 
+through a Flask inference service.
+
+---
+
+### 🔍 Model Summary
+
+| Attribute | Value |
+|----------|-------|
+| Architecture | YOLO-based object detection |
+| Total Layers | **129** |
+| Parameters | **3,011,628 (~3M)** |
+| Gradients | **0 (frozen inference weights)** |
+| Compute Requirement | **8.2 GFLOPs per image** |
+| Input Resolution | **640 × 640** |
+
+This compact design enables high performance while remaining efficient for:
+- laptops
+- edge devices
+- microservers
+- cloud deployment
+
+---
+
+### 🚀 How the Model Works in This System
+
+1. Backend receives an image from the mobile app / admin dashboard  
+2. Flask API loads `best.pt` and performs inference  
+3. Model returns:
+   - detected potholes
+   - confidence score
+   - bounding box values
+   - annotated output image
+
+---
+
+### 📌 Use Cases
+
+- Smart City road monitoring
+- Municipal complaint automation
+- Fleet vehicle camera systems
+- Citizen reporting apps
+- Autonomous maintenance assessment
+
+---
+
+### 📎 Integration Flow
+
+```mermaid
+flowchart TB
+    App[Mobile App] --> API[Node Backend API]
+    Dashboard[Admin Dashboard] --> API
+
+    API --> DB[(MongoDB)]
+    API --> AI[Flask YOLO Inference Service]
+    AI --> Model[(best.pt Model File)]
+
+    API --> Storage[(Image Storage)]
+
+    API --> Dashboard
+    API --> App
+```
+
+
+---
+
+### 🧩 Why This Architecture?
+
+✔ Lightweight – deployable on low-power hardware  
+✔ Fast inference – suitable for real-time use  
+✔ Modular – backend and AI are decoupled  
+✔ Expandable – can be retrained for cracks, speed breakers, etc.
+
+---
+
+### 🔧 Files Included
+
+| File | Purpose |
+|------|---------|
+| `best.pt` | AI model weight file |
+| `app.py` | Flask-based inference API exposing `/predict-image` |
+
+---
+
+### 📌 Possible Extensions
+
+- Support multi-class road damage detection
+- Add segmentation masks instead of bounding boxes
+- Deploy to edge devices like Jetson Nano / Coral TPU
+- Add continuous learning with feedback loop
+
+---
+
+### 🔄 Model Pipeline
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Backend
+    participant Flask
+    participant Model
+    participant Output
+
+    User->>Backend: Upload Image
+    Backend->>Flask: POST /predict-image
+    Flask->>Model: Run inference
+    Model-->>Flask: Return detections
+    Flask-->>Backend: JSON + annotated output
+    Backend-->>User: Display result
+```
